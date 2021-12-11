@@ -4,6 +4,8 @@ import datetime as dt
 import config
 from utils import gen_90d_dates, toTimeStamp
 
+#TODO(Ion): Add the start date, end date functionality to these functions
+
 class BinanceSymbol():
     def __init__(self, symbol, q_curr, b_curr):
         self.symbol = symbol
@@ -36,7 +38,7 @@ class BinanceAccountManager():
         
         return [symbol for symbol in symbols if symbol.symbol in self.valid_symbols]
 
-    def getTrades(self, startDate=None, endDate=None):
+    def getTrades(self, s_date=None, e_date=None):
         
         latest_trades = []
         trading_symbols = self.getTradingSymbols()
@@ -67,14 +69,14 @@ class BinanceAccountManager():
             if deposit:
                 deposits.extend(deposit)
 
-        return deposit
+        return deposits
 
-    def getFiatDepositsWithdrawals(self):
+    def getFiatDepositsWithdrawals(self, s_date=None):
         date_pairs = gen_90d_dates(dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d'))
         deposits = []
         
-        for s_date, e_date in date_pairs:
-            deposit = self.client.get_fiat_deposit_withdraw_history(transactionType=0, beginTime=toTimeStamp(s_date), endTime=toTimeStamp(e_date))
+        for begin, end in date_pairs:
+            deposit = self.client.get_fiat_deposit_withdraw_history(transactionType=0, beginTime=toTimeStamp(begin), endTime=toTimeStamp(end))
             
             if deposit['total'] > 0:
                 for data in deposit['data']:
@@ -101,7 +103,7 @@ class BinanceAccountManager():
         
         return withdrawals
 
-    def getAccountDust(self):
+    def getAccountDust(self, s_date=None):
         dust_activity = self.client.get_dust_log()
         dust_activities = []
         if dust_activity['total'] > 0:
@@ -109,7 +111,7 @@ class BinanceAccountManager():
                 dust_activities.extend(action['userAssetDribbletDetails'])
         return dust_activities
 
-    def getAccountDividends(self):
+    def getAccountDividends(self, s_date):
         dividends = self.client.get_asset_dividend_history()
         if dividends['total'] > 0:
             return dividends['rows']
