@@ -43,8 +43,14 @@ class BinanceAccountManager():
         latest_trades = []
         trading_symbols = self.getTradingSymbols()
 
+        if s_date != None and e_date != None:
+            order = {'startTime': toTimeStamp(s_date), 'endTime': toTimeStamp(e_date)}
+        else:
+            order = {}
+
         for symbol in trading_symbols:
-            trades = self.client.get_my_trades(symbol=symbol.symbol)
+            order.update({'symbol':symbol.symbol})
+            trades = self.client.get_my_trades(**order)
                 
             if trades:
                 for trade in trades:
@@ -54,30 +60,33 @@ class BinanceAccountManager():
         
         return latest_trades
 
-    def getDeposits(self, s_date=None):
+    def getDeposits(self, s_date=None, e_date=None):
         
-        if s_date == None:
+        if s_date == None and e_date == None:
             date = dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d')
+            request_dates = gen_90d_dates(date)
         else:
-            date = s_date
-
-        request_dates = gen_90d_dates(date)
+            request_dates = gen_90d_dates(s_date, e_date)
+        
         deposits = []
         for i_date, j_date in request_dates:
             deposit = self.client.get_deposit_history(startTime=toTimeStamp(i_date), endTime=toTimeStamp(j_date))
-
             if deposit:
                 deposits.extend(deposit)
 
         return deposits
 
-    def getFiatDepositsWithdrawals(self, s_date=None):
-        date_pairs = gen_90d_dates(dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d'))
+    def getFiatDepositsWithdrawals(self, s_date=None, e_date=None):
+
+        if s_date == None and e_date == None:
+            date = dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d')
+            date_pairs = gen_90d_dates(date)
+        else:
+            date_pairs = gen_90d_dates(s_date, e_date)
+
         deposits = []
-        
-        for begin, end in date_pairs:
-            deposit = self.client.get_fiat_deposit_withdraw_history(transactionType=0, beginTime=toTimeStamp(begin), endTime=toTimeStamp(end))
-            
+        for i_date, j_date in date_pairs:
+            deposit = self.client.get_fiat_deposit_withdraw_history(transactionType=0, beginTime=toTimeStamp(i_date), endTime=toTimeStamp(j_date))
             if deposit['total'] > 0:
                 for data in deposit['data']:
                     if data['status'] == 'Successful':
@@ -85,35 +94,51 @@ class BinanceAccountManager():
         
         return deposits
 
-    def getWithdrawals(self, s_date=None):
+    def getWithdrawals(self, s_date=None, e_date=None):
 
         if s_date == None:
             date = dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d')
+            date_pairs = gen_90d_dates(date) 
         else:
-            date = s_date
+            date_pairs = gen_90d_dates(s_date, e_date)
 
-        request_dates = gen_90d_dates(date)
         withdrawals = []
 
-        for i_date, j_date in request_dates:
-            withdrawl = self.client.get_withdraw_history(startTime=toTimeStamp(i_date), endTime=toTimeStamp(j_date))
+        for i_date, j_date in date_pairs:
+            order = {'startTime':i_date, 'endTime': j_date}
+            withdrawl = self.client.get_withdraw_history(**order)
             
             if withdrawl:
                 withdrawals.extend(withdrawl)
         
         return withdrawals
 
-    def getAccountDust(self, s_date=None):
-        dust_activity = self.client.get_dust_log()
+    def getAccountDust(self, s_date=None, e_date=None):
+
+        if s_date != None and e_date != None:
+            order = {'startTime': toTimeStamp(s_date), 'endTime': toTimeStamp(e_date)}
+        else:
+            order = {}
+
         dust_activities = []
-        if dust_activity['total'] > 0:
+        dust_activity = self.client.get_dust_log(**order)
+        if dust_activity.get('total', 0.0) > 0.0:
             for action in dust_activity['userAssetDribblets']:
                 dust_activities.extend(action['userAssetDribbletDetails'])
         return dust_activities
 
-    def getAccountDividends(self, s_date):
-        dividends = self.client.get_asset_dividend_history()
-        if dividends['total'] > 0:
+    def getAccountDividends(self, s_date=None, e_date=None):
+
+        if s_date != None and e_date != None:
+            order = {'startTime': toTimeStamp(s_date), 'endTime': toTimeStamp(e_date)}
+        else:
+            order = {}
+
+        dividends = self.client.get_asset_dividend_history(**order)
+        
+        if dividends.get('total', 0.0) > 0.0:
             return dividends['rows']
+        else:
+            return []
 
 
