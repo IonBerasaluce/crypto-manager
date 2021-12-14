@@ -20,8 +20,7 @@ class ExchangeManager(object):
         self.my_coins = my_coins
         self.save_location = location
 
-        if ~Path(self.save_location).is_file():
-            createProject(self.save_location)
+        createProject(self.save_location)
 
     def updateDBs(self, db, start_date, end_date):
         
@@ -31,25 +30,22 @@ class ExchangeManager(object):
         print('Updating: {}'.format(db))
         print('----------------')
         
-        if db == 'account_movements.csv':
-            all_moves = self.getAllAccountMovements(start_date, end_date) 
-            file_to_update = pd.concat([file_to_update, all_moves], axis=0).sort_index()
         if db == 'historical_deposits.csv':
             deposits = self.getAccountDeposits(start_date, end_date, export_mode='full')
             file_to_update = pd.concat([file_to_update, deposits], axis=0).sort_index()
-        if db == 'historical_dust_deposits.csv':
+        elif db == 'historical_dust_activities.csv':
             dust = self.getAccountDust(start_date, end_date, export_mode='full')
             file_to_update = pd.concat([file_to_update, dust], axis=0).sort_index()
-        if db == 'historical_fiat_movements.csv':
+        elif db == 'historical_fiat_movements.csv':
             fiat = self.getAccountFiatDepositsWithdrawals(start_date, end_date, export_mode='full')
             file_to_update = pd.concat([file_to_update, fiat], axis=0).sort_index()
-        if db == 'historical_trades.csv':
+        elif db == 'historical_trades.csv':
             trades = self.getAccountTrades(start_date, end_date, export_mode='full')
             file_to_update = pd.concat([file_to_update, trades], axis=0).sort_index()
-        if db == 'historical_withdrawals.csv':
+        elif db == 'historical_withdrawals.csv':
             withdrawals = self.getAccountWithdrawals(start_date, end_date, export_mode='full')
             file_to_update = pd.concat([file_to_update, withdrawals], axis=0).sort_index()
-        if db == 'historical_dividends.csv':
+        elif db == 'historical_dividends.csv':
             dividends = self.getAccountDividends(start_date, end_date, export_mode='full')
             file_to_update = pd.concat([file_to_update, dividends], axis=0).sort_index()
 
@@ -58,20 +54,6 @@ class ExchangeManager(object):
         print('{} db update complete!'.format(db))
 
         return  
-
-    def getAllAccountMovements(self, start_date=None, end_date=None):
-        
-        # Must change this to update once the data has been downlaoded and saved locally
-        trades = self.getAccountTrades(start_date, end_date, additional_info=True)
-        deposits = self.getAccountDeposits(start_date, end_date)
-        fiat = self.getAccountFiatDepositsWithdrawals(start_date, end_date, additional_info=True)
-        withdrawals = self.getAccountWithdrawals(start_date, end_date, additional_info=True)
-        dust = self.getAccountDust(start_date, end_date, additional_info=True)
-        dividends = self.getAccountDividends(start_date, end_date)
-
-        all_moves = pd.concat([trades, deposits, fiat, withdrawals, dust, dividends], axis=0, sort=False).sort_index()
-
-        return all_moves
 
     def getAccountDeposits(self, start_date, end_date, export_mode='base'):
         return genEntries(self._getAccountDepositActions(start_date, end_date), export_mode)

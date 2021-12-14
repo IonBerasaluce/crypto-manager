@@ -1,9 +1,8 @@
 import datetime as dt
-from numpy.lib.shape_base import _expand_dims_dispatcher
 import pandas as pd
+import os
 
-DIRS = ["historical_trades.csv", "historical_deposits.csv", "historical_withdrawals.csv", "historical_dust_actrivities.csv", "historical_fiat_movements.csv", "account_movements.csv"]
-
+DIRS = ["historical_trades.csv", "historical_deposits.csv", "historical_withdrawals.csv", "historical_dust_activities.csv", "historical_fiat_movements.csv", "account_movements.csv", "historical_dividends.csv"]
 
 def gen_90d_dates(start_date, end_date=None):
     dates = []
@@ -36,11 +35,27 @@ def toTimeStamp(date):
     return int(dt.datetime.timestamp(date)*1000)
 
 def toDate(timestamp):
-    return dt.datetime.fromtimestamp(int(timestamp/1000)).date()
+    return dt.datetime.fromtimestamp(int(timestamp/1000))
 
-def createProject(dir):
-    for new_dir in DIRS:
-        with open(dir + new_dir, "w") as empty_csv:
-            pass
+def createProject(path):
+    paths = [path + directory for directory in DIRS]
+    createFolder(paths)
+
+def mapper(fnc):
+    def inner(list_of_directories):
+        
+        return [fnc(directory) for directory in list_of_directories]
+    
+    return inner
+    
+@mapper
+def createFolder(directory):
+    try:
+        if not os.path.exists(directory):
+            with open(directory, 'w') as newfile:
+                pass
+    except OSError:
+        print('ERROR: Creating directory. ' + directory)
+
 
 

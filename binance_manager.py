@@ -4,8 +4,6 @@ import datetime as dt
 import config
 from utils import gen_90d_dates, toTimeStamp
 
-#TODO(Ion): Add the start date, end date functionality to these functions
-
 class BinanceSymbol():
     def __init__(self, symbol, q_curr, b_curr):
         self.symbol = symbol
@@ -105,7 +103,7 @@ class BinanceAccountManager():
         withdrawals = []
 
         for i_date, j_date in date_pairs:
-            order = {'startTime':i_date, 'endTime': j_date}
+            order = {'startTime':toTimeStamp(i_date), 'endTime': toTimeStamp(j_date)}
             withdrawl = self.client.get_withdraw_history(**order)
             
             if withdrawl:
