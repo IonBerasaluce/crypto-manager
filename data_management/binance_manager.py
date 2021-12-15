@@ -1,7 +1,7 @@
 from binance.client import Client
 import datetime as dt
 
-import config
+from config import config
 from utils import gen_90d_dates, toTimeStamp
 
 class BinanceSymbol():
@@ -40,11 +40,7 @@ class BinanceAccountManager():
         
         latest_trades = []
         trading_symbols = self.getTradingSymbols()
-
-        if s_date != None and e_date != None:
-            order = {'startTime': toTimeStamp(s_date), 'endTime': toTimeStamp(e_date)}
-        else:
-            order = {}
+        order = {}
 
         for symbol in trading_symbols:
             order.update({'symbol':symbol.symbol})
@@ -53,22 +49,25 @@ class BinanceAccountManager():
             if trades:
                 for trade in trades:
                     trade.update({'coin': symbol.q_curr})
-                
-                latest_trades.extend(trades)
+                    if s_date != None and e_date != None:
+                        if trade['time'] > s_date and trade['time'] <= e_date:
+                            latest_trades.append(trade)
+                    else:
+                        latest_trades.append(trade)
         
         return latest_trades
 
     def getDeposits(self, s_date=None, e_date=None):
         
         if s_date == None and e_date == None:
-            date = dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d')
+            date = toTimeStamp(dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d'))
             request_dates = gen_90d_dates(date)
         else:
             request_dates = gen_90d_dates(s_date, e_date)
         
         deposits = []
         for i_date, j_date in request_dates:
-            deposit = self.client.get_deposit_history(startTime=toTimeStamp(i_date), endTime=toTimeStamp(j_date))
+            deposit = self.client.get_deposit_history(startTime=i_date, endTime=j_date)
             if deposit:
                 deposits.extend(deposit)
 
@@ -77,14 +76,14 @@ class BinanceAccountManager():
     def getFiatDepositsWithdrawals(self, s_date=None, e_date=None):
 
         if s_date == None and e_date == None:
-            date = dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d')
+            date = toTimeStamp(dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d'))
             date_pairs = gen_90d_dates(date)
         else:
             date_pairs = gen_90d_dates(s_date, e_date)
 
         deposits = []
         for i_date, j_date in date_pairs:
-            deposit = self.client.get_fiat_deposit_withdraw_history(transactionType=0, beginTime=toTimeStamp(i_date), endTime=toTimeStamp(j_date))
+            deposit = self.client.get_fiat_deposit_withdraw_history(transactionType=0, beginTime=i_date, endTime=j_date)
             if deposit['total'] > 0:
                 for data in deposit['data']:
                     if data['status'] == 'Successful':
@@ -95,7 +94,7 @@ class BinanceAccountManager():
     def getWithdrawals(self, s_date=None, e_date=None):
 
         if s_date == None:
-            date = dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d')
+            date = toTimeStamp(dt.datetime.strptime(config.DEFAULT_START_DATE, '%Y-%m-%d'))
             date_pairs = gen_90d_dates(date) 
         else:
             date_pairs = gen_90d_dates(s_date, e_date)
@@ -103,7 +102,7 @@ class BinanceAccountManager():
         withdrawals = []
 
         for i_date, j_date in date_pairs:
-            order = {'startTime':toTimeStamp(i_date), 'endTime': toTimeStamp(j_date)}
+            order = {'startTime':i_date, 'endTime': j_date}
             withdrawl = self.client.get_withdraw_history(**order)
             
             if withdrawl:
@@ -114,7 +113,7 @@ class BinanceAccountManager():
     def getAccountDust(self, s_date=None, e_date=None):
 
         if s_date != None and e_date != None:
-            order = {'startTime': toTimeStamp(s_date), 'endTime': toTimeStamp(e_date)}
+            order = {'startTime': s_date, 'endTime': e_date}
         else:
             order = {}
 
@@ -128,7 +127,7 @@ class BinanceAccountManager():
     def getAccountDividends(self, s_date=None, e_date=None):
 
         if s_date != None and e_date != None:
-            order = {'startTime': toTimeStamp(s_date), 'endTime': toTimeStamp(e_date)}
+            order = {'startTime': s_date, 'endTime': e_date}
         else:
             order = {}
 

@@ -7,11 +7,17 @@ from exchange_actions import *
 from utils import createProject, readCSV
 
 def genEntries(list_of_actions, mode='base'):
-    if mode == 'base':
-        list_of_dicts =  [action.toBaseDict() for action in list_of_actions]
+    if list_of_actions:
+        
+        if mode == 'base':
+            list_of_dicts =  [action.toBaseDict() for action in list_of_actions]
+        else:
+            list_of_dicts =  [action.toDict() for action in list_of_actions]
+        
+        return pd.DataFrame(list_of_dicts).set_index('time')
+
     else:
-        list_of_dicts =  [action.toDict() for action in list_of_actions]
-    return pd.DataFrame(list_of_dicts).set_index('time')
+        return pd.DataFrame()
 
 class ExchangeManager(object):
 
@@ -20,11 +26,12 @@ class ExchangeManager(object):
         self.my_coins = my_coins
         self.save_location = location
 
-        createProject(self.save_location)
-
     def updateDBs(self, db, start_date, end_date):
         
-        file_to_update = readCSV(self.save_location + db)
+        file_to_update = readCSV(self.save_location + db, index=None, as_type=str)
+        
+        if not file_to_update.empty:
+            file_to_update = file_to_update.set_index('time')
         
         print('----------------')
         print('Updating: {}'.format(db))
@@ -73,14 +80,34 @@ class ExchangeManager(object):
     def getAccountDividends(self, start_date, end_date, export_mode='base'):
         return genEntries(self._getAccountDividendActions(start_date, end_date), export_mode)
 
+    def getAdditionalInfo(self, actions):
+        if type(actions[0]) == TradeAction:
+            trade_fee_actions = [FeeAction(ta.feeAsset, ta.fee, ta.time, 'trading fees') for ta in actions]
+            trade_base_action = [ta.getOppositeLegAction() for ta in actions]
+            actions.extend(trade_fee_actions + trade_base_action)
+        elif type(actions[0]) == FiatDepositAction:
+            fiat_fee_actions = [FeeAction(fa.feeAsset, fa.fee, fa.time, 'fiat deposit fee') for fa in actions]
+            actions.extend(fiat_fee_actions)
+        elif type(actions[0]) == WithdrawlAction:
+            withdrawl_fee_actions = [FeeAction(wa.feeAsset, wa.fee, wa.time, 'withdrawl fees') for wa in actions]
+            actions.extend(withdrawl_fee_actions)
+        elif type(actions[0]) == DustSweepAction:
+            dust_transfer_actions = [da.getTransferAction() for da in actions]
+            dust_fee_actions = [FeeAction(da.feeAsset, da.fee, da.time, 'dust exchange fee') for da in actions]
+            actions.extend(dust_fee_actions + dust_transfer_actions)
+        elif type(actions[0] == ConversionAction):
+            conversion_base_action = [cv.getOppositeLegAction() for cv in actions]
+            actions.extend(conversion_base_action)
+        else:
+            print('No additional actions for Exchange Action type: {}'.format(type(actions[0])))
+
+        return actions
 
     def _getAccountTradeActions(self, start_date=None, end_date=None, additional_info=False):
         trades = self._binance_manager.getTrades(s_date=start_date, e_date=end_date)
         trade_actions = [TradeAction(trade_action) for trade_action in trades]
         if additional_info:
-            trade_fee_actions = [FeeAction(ta.feeAsset, ta.fee, ta.time, 'trading fees') for ta in trade_actions]
-            trade_base_action = [ta.getOppositeLegAction() for ta in trade_actions]
-            trade_actions.extend(trade_fee_actions + trade_base_action)
+            trade_actions = self.getAdditionalInfo(trade_actions)
         return trade_actions
 
     def _getAccountDepositActions(self, start_date=None, end_date=None):
@@ -92,25 +119,21 @@ class ExchangeManager(object):
         withdrawals = self._binance_manager.getWithdrawals(s_date=start_date, e_date=end_date)
         withdrawl_actions = [WithdrawlAction(withdrawl_action) for withdrawl_action in withdrawals]
         if additional_info:
-            withdrawl_fee_actions = [FeeAction(wa.feeAsset, wa.fee, wa.time, 'withdrawl fees') for wa in withdrawl_actions]
-            withdrawl_actions.extend(withdrawl_fee_actions)
+            withdrawl_actions = self.getAdditionalInfo(withdrawl_actions)
         return withdrawl_actions
 
     def _getAccountFiatDepositsWithdrawalActions(self, start_date=None, end_date=None, additional_info=False):
         fiat = self._binance_manager.getFiatDepositsWithdrawals(s_date=start_date, e_date=end_date)
         fiat_actions = [FiatDepositAction(fiat_action) for fiat_action in fiat]
         if additional_info:
-            fiat_fee_actions = [FeeAction(fa.feeAsset, fa.fee, fa.time, 'fiat deposit fee') for fa in fiat_actions]
-            fiat_actions.extend(fiat_fee_actions)
+            fiat_actions = self.getAdditionalInfo(fiat_actions)
         return fiat_actions
 
     def _getAccountDustActions(self, start_date=None, end_date=None, additional_info=False):
         dust = self._binance_manager.getAccountDust(s_date=start_date, e_date=end_date)
         dust_actions = [DustSweepAction(dust_action) for dust_action in dust]
         if additional_info:
-            dust_transfer_actions = [da.getTransferAction() for da in dust_actions]
-            dust_fee_actions = [FeeAction(da.feeAsset, da.fee, da.time, 'dust exchange fee') for da in dust_actions]
-            dust_actions.extend(dust_fee_actions + dust_transfer_actions)
+            dust_actions = self.getAdditionalInfo(dust_actions)
         return dust_actions
     
     def _getAccountDividendActions(self, start_date=None, end_date=None):
