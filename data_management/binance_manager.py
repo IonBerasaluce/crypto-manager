@@ -18,7 +18,7 @@ class BinanceAccountManager():
         self._secretKey = config.API_SECRET
         self.client = Client(self._key, self._secretKey)
         self.quote_coins = coin_list
-        self.base_coins = ['BTC', 'USDT', 'GBP', 'ETH']
+        self.base_coins = ['BTC', 'USDT', 'BUSD', 'GBP', 'ETH']
         self.valid_symbols = [item['symbol'] for item in self.client.get_exchange_info()['symbols']]
 
         pass
