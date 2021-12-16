@@ -7,7 +7,7 @@
         "historical_fiat_movements.csv": "2021-12-16",
         "historical_dividends.csv": "2021-12-16",
         "historical_conversions.csv": "2021-12-16",
-        "account_movements.csv": "2021-12-16"
+        "account_movements.csv": "2021-12-16 00:00:00"
     },
     "my_coins": [
         "BTC",

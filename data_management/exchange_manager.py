@@ -28,7 +28,7 @@ class ExchangeManager(object):
 
     def updateDBs(self, db, start_date, end_date):
         
-        file_to_update = readCSV(self.save_location + db, index=None, as_type=str)
+        file_to_update = readCSV(self.save_location / db, index=None, as_type=str)
         
         if not file_to_update.empty:
             file_to_update = file_to_update.set_index('time')
@@ -56,7 +56,7 @@ class ExchangeManager(object):
             dividends = self.getAccountDividends(start_date, end_date, export_mode='full')
             file_to_update = pd.concat([file_to_update, dividends], axis=0).sort_index()
 
-        file_to_update.to_csv(self.save_location + db)
+        file_to_update.to_csv(self.save_location / db)
         
         print('{} db update complete!'.format(db))
 

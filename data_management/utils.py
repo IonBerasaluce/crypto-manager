@@ -1,16 +1,15 @@
 import datetime as dt
 import pandas as pd
 import os
+from pathlib import Path
 
-from pandas.core.arrays.sparse import dtype
-
-DIRS =  ["\\data\\exchange_data\\historical_trades.csv", 
-         "\\data\\exchange_data\\historical_deposits.csv", 
-         "\\data\\exchange_data\\historical_withdrawals.csv", 
-         "\\data\\exchange_data\\historical_dust_activities.csv", 
-         "\\data\\exchange_data\\historical_fiat_movements.csv", 
-         "\\data\\exchange_data\\historical_dividends.csv", 
-         "\\data\\derived_data\\account_movements.csv"]
+DIRS =  ["data/exchange_data/historical_trades.csv", 
+         "data/exchange_data/historical_deposits.csv", 
+         "data/exchange_data/historical_withdrawals.csv", 
+         "data/exchange_data/historical_dust_activities.csv", 
+         "data/exchange_data/historical_fiat_movements.csv", 
+         "data/exchange_data/historical_dividends.csv", 
+         "data/derived_data/account_movements.csv"]
 
 def toTimeStamp(date):
     return int(dt.datetime.timestamp(date)*1000)
@@ -56,7 +55,7 @@ def readCSV(path, index=0, as_type=None):
 
 
 def createProject(path):
-    paths = [path + directory for directory in DIRS]
+    paths = [os.path.join(path, directory) for directory in DIRS]
     createFolder(paths)
 
 def mapper(fnc):
@@ -70,10 +69,14 @@ def mapper(fnc):
 def createFolder(directory):
     try:
         if not os.path.exists(directory):
+            # Here we must create the directory first and then create the folder
+            out_folder = Path(*Path(directory).parts[:-1])
+            if not out_folder.is_dir():
+                os.makedirs(out_folder)
             with open(directory, 'w') as newfile:
                 pass
-    except OSError:
-        print('ERROR: Creating directory. ' + directory)
+    except OSError as e:
+        print('ERROR {}: Creating directory {}. '.format(e, directory))
 
 
 

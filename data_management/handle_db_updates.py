@@ -3,6 +3,7 @@ import json
 import datetime as dt
 import pandas as pd
 import os
+from pathlib import Path
 
 from config.config import SETUP_PATH
 from utils import toDate
@@ -13,15 +14,18 @@ from exchange_manager import *
 BASE_PATH = os.getcwd()
 
 def updateExchangeDBs(coin_list, last_update_dates):
-    directory = BASE_PATH + '\\data\\exchange_data\\'
-    exchange_manager = ExchangeManager(coin_list, directory)
+    folder = Path(BASE_PATH + '/data/exchange_data/')
+    exchange_manager = ExchangeManager(coin_list, folder)
     
-    for db in os.listdir(directory):
+    for db in os.listdir(folder):
+        if db.startswith('.'):
+            continue
+
         start_date = last_update_dates[db]
         start_date = toTimeStamp(dt.datetime.strptime(start_date, '%Y-%m-%d'))
         end_date = toTimeStamp((dt.datetime.strptime(dt.datetime.today().date().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")))
 
-        if readCSV(directory + db).empty:
+        if readCSV(folder / db).empty:
             exchange_manager.updateDBs(db, None, None)
         else:
             if start_date == end_date:
@@ -36,8 +40,8 @@ def updateExchangeDBs(coin_list, last_update_dates):
 def updateDerivedDBs(my_coins, last_update_dates):
 
     db_name = 'account_movements.csv'
-    directory =  BASE_PATH + '\\data\\derived_data\\'
-    db = readCSV(directory + db_name, index=None, as_type=str)
+    directory =  Path(BASE_PATH + '/data/derived_data/')
+    db = readCSV(directory / db_name, index=None, as_type=str)
 
     if not db.empty:
         db = db.set_index('time')
@@ -73,9 +77,10 @@ def updateDerivedDBs(my_coins, last_update_dates):
         conversions = genEntries(conversions)
         
         db = pd.concat([db, trades, deposits, fiat, withdrawals, dust, dividends, conversions], axis=0, sort=False).sort_index()
-        db.to_csv(directory + db_name)
+        db.to_csv(directory / db_name)
 
-        last_update_dates[db_name] = toDate(end_date).strftime('%Y-%m-%d')
+        end_date = dt.datetime.today().date().strftime("%Y-%m-%d %H:%M:%S")
+        last_update_dates[db_name] = end_date
         print('Generated all moves for user!')
     
     else:
