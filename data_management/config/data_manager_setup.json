@@ -1,13 +1,14 @@
 {
     "last_update_dates": {
-        "historical_trades.csv": "2021-12-16",
-        "historical_deposits.csv": "2021-12-16",
-        "historical_withdrawals.csv": "2021-12-16",
-        "historical_dust_activities.csv": "2021-12-16",
-        "historical_fiat_movements.csv": "2021-12-16",
-        "historical_dividends.csv": "2021-12-16",
-        "historical_conversions.csv": "2021-12-16",
-        "account_movements.csv": "2021-12-16 00:00:00"
+        "historical_trades.csv": "2021-12-19",
+        "historical_deposits.csv": "2021-12-19",
+        "historical_withdrawals.csv": "2021-12-19",
+        "historical_dust_activities.csv": "2021-12-19",
+        "historical_fiat_movements.csv": "2021-12-19",
+        "historical_dividends.csv": "2021-12-19",
+        "historical_conversions.csv": "2021-12-19",
+        "account_movements.csv": "2021-12-19",
+        "hourly_market_data.csv": "2021-12-19"
     },
     "my_coins": [
         "BTC",

@@ -9,7 +9,8 @@ DIRS =  ["data/exchange_data/historical_trades.csv",
          "data/exchange_data/historical_dust_activities.csv", 
          "data/exchange_data/historical_fiat_movements.csv", 
          "data/exchange_data/historical_dividends.csv", 
-         "data/derived_data/account_movements.csv"]
+         "data/derived_data/account_movements.csv", 
+         "data/market_data/hourly_market_data.csv"]
 
 def toTimeStamp(date):
     return int(dt.datetime.timestamp(date)*1000)

@@ -10,6 +10,7 @@ from utils import toDate
 from utils import readCSV, createProject, toTimeStamp
 from requests_db import *
 from exchange_manager import *
+from market_datamanager import getHistoricalMarketData
 
 BASE_PATH = os.getcwd()
 
@@ -79,7 +80,7 @@ def updateDerivedDBs(my_coins, last_update_dates):
         db = pd.concat([db, trades, deposits, fiat, withdrawals, dust, dividends, conversions], axis=0, sort=False).sort_index()
         db.to_csv(directory / db_name)
 
-        end_date = dt.datetime.today().date().strftime("%Y-%m-%d %H:%M:%S")
+        end_date = dt.datetime.today().date().strftime("%Y-%m-%d")
         last_update_dates[db_name] = end_date
         print('Generated all moves for user!')
     
@@ -88,11 +89,39 @@ def updateDerivedDBs(my_coins, last_update_dates):
     
     return last_update_dates
 
+def updateMarketData(coins, last_update_dates):
+    db_name = 'hourly_market_data.csv'
+    directory = Path(BASE_PATH + '/data/market_data/')
+    db = readCSV(directory / db_name, index=None, as_type=str)
+
+    if not db.empty:
+        db = db.set_index('time')
+
+    start_date = last_update_dates[db_name]
+    start_date = toTimeStamp(dt.datetime.strptime(start_date, '%Y-%m-%d'))
+    end_date = toTimeStamp((dt.datetime.strptime(dt.datetime.today().date().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")))
+
+    if start_date == end_date:
+        print('Database {} up to date!'.format(db_name))
+
+    else:
+        historical_data = pd.DataFrame()
+        symbols = [coin + 'USDT' for coin in coins]
+        for symbol in symbols:
+            symbol_data = getHistoricalMarketData(symbol, start_date, timeframe='1h')
+            historical_data = pd.concat([historical_data, symbol_data], axis=0, sort=False)
+
+        historical_data = pd.concat([db, historical_data], axis=0, sort=False).sort_values('time')
+        historical_data.to_csv(directory / db_name)
+    
+    return last_update_dates
+
 with open(SETUP_PATH) as infile:
     setup = json.load(infile)
 
 createProject(BASE_PATH)
 
+setup['last_update_dates'] = updateMarketData(setup['my_coins'], setup['last_update_dates'])
 setup['last_update_dates'] = updateExchangeDBs(setup['my_coins'], setup['last_update_dates'])
 setup['last_update_dates'] = updateDerivedDBs(setup['my_coins'], setup['last_update_dates'])
 
