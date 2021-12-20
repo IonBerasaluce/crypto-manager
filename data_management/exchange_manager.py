@@ -1,10 +1,8 @@
-from os import stat_result
-from pathlib import Path
 from binance_manager import BinanceAccountManager
 import pandas as pd
 
 from exchange_actions import *
-from utils import createProject, readCSV
+from utils import readCSV
 
 def genEntries(list_of_actions, mode='base'):
     if list_of_actions:

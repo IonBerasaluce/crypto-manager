@@ -48,6 +48,8 @@ def readCSV(path, index=0, as_type=None):
         
         if index != None:
             data.index = pd.to_datetime(data.index)
+
+        data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
     
     except pd.errors.EmptyDataError:
         return pd.DataFrame()

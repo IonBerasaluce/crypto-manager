@@ -107,6 +107,7 @@ def updateMarketData(coins, last_update_dates):
     else:
         historical_data = pd.DataFrame()
         symbols = [coin + 'USDT' for coin in coins]
+        print('Updating market data!')
         for symbol in symbols:
             symbol_data = getHistoricalMarketData(symbol, start_date, timeframe='1h')
             historical_data = pd.concat([historical_data, symbol_data], axis=0, sort=False)

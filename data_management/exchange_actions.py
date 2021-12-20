@@ -1,6 +1,10 @@
-from utils import toTimeStamp
+from utils import toTimeStamp, readCSV
 import datetime as dt
+import os
+from pathlib import Path
 
+BASECURR = 'USDT'
+BASE_PATH = Path(os.getcwd() + '/data/market_data')
 BINANCE_KEY_MAP = {
     'coin':                   'asset',
     'amount':                 'amount',
@@ -31,9 +35,20 @@ BINANCE_KEY_MAP = {
     'divTime':                'time',
     'asset':                  'asset'
     }
+
 def re_key_input(dictionary):
     out_dict = {BINANCE_KEY_MAP[exchange_key]: dictionary[exchange_key] for exchange_key in BINANCE_KEY_MAP.keys() if dictionary.get(exchange_key, None) != None}
     return out_dict
+
+def getPriceAtTime(symbol, time):
+    market_db_dir = 'hourly_market_data.csv'
+    prices = readCSV(BASE_PATH / market_db_dir, index=None)
+    symbol_prices = prices[prices['symbol']== symbol]
+    near_results = symbol_prices.loc[(symbol_prices['time']-time).abs().sort_values().index[:2], ['time', 'close']].sort_index().to_dict('records')
+
+    estimated_price = near_results[0]['close'] + (time - near_results[0]['time'])*(near_results[1]['close'] - near_results[0]['close'])/(near_results[1]['time'] - near_results[0]['time'])
+
+    return estimated_price
 
 class ExchangeAccountAction():
 
@@ -70,10 +85,20 @@ class TradeAction(ExchangeAccountAction):
         
         self.symbol = trade_details['symbol']
         self.price = float(trade_details['price'])
-        self.base = self.symbol.split(asset)[1]
+        base_symbol = self.symbol.split(asset)[1]
+        self.base = base_symbol if base_symbol != 'BUSD' else 'USDT'
+        self.basePrice = getPriceAtTime(self.base + BASECURR, time) if self.base != BASECURR else 1.0
         self.fee = float(trade_details['fee'])
-        self.feeAsset = trade_details['feeAsset']
+        self.feeAsset = trade_details['feeAsset'] if trade_details['feeAsset'] != 'BUSD' else 'USDT'
         self.id = trade_details['id']
+        
+        feeSymbol = self.feeAsset + BASECURR
+        if self.feeAsset == BASECURR:
+            self.feeAssetPrice = 1.0
+        elif feeSymbol == self.symbol:
+            self.feeAssetPrice = self.price
+        else:
+            self.feeAssetPrice = getPriceAtTime(feeSymbol, time)
         
         super().__init__(asset, amount, time, description)
 
@@ -116,6 +141,7 @@ class WithdrawlAction(ExchangeAccountAction):
         self.status = withdraw_details['status']
         self.fee = float(withdraw_details['fee']) if isinstance(withdraw_details['fee'], str) else withdraw_details['fee']
         self.feeAsset = asset
+        self.feeAsssetPrice = getPriceAtTime(self.feeAsset + BASECURR, time) if self.feeAsset != BASECURR else self.price
         self.id = withdraw_details['id'] 
 
         super().__init__(asset, amount, time, description)
@@ -134,6 +160,7 @@ class DustSweepAction(ExchangeAccountAction):
 
         self.fee = float(dust_details['fee'])
         self.feeAsset = 'BNB'
+        self.feeAsssetPrice = getPriceAtTime(self.feeAsset + BASECURR, time) if self.feeAsset != BASECURR else 1
         self.transferedAmount = float(dust_details['transferedAmount'])
         self.transferedAsset = 'BNB'
         self.id = dust_details['id'] 
@@ -156,7 +183,8 @@ class FiatDepositAction(ExchangeAccountAction):
         description = 'fiat deposit activity'
 
         self.fee = float(fdeposit_details['fee'])
-        self.feeAsset = asset 
+        self.feeAsset = asset if asset != 'USD' or asset != 'BUSD' else 'USDT'
+        self.feeAsssetPrice = getPriceAtTime(self.feeAsset + BASECURR, time) if self.feeAsset != BASECURR else self.price
         self.id = fdeposit_details['id']
                 
         super().__init__(asset, amount, time, description)
