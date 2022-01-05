@@ -2,15 +2,11 @@
 import json
 from binance.client import Client
 import time
+import copy
 
 from tools import gen_date_pairs, stringToTimeStamp
 from exchange_actions import *
-
-EXCHANGE_CODES = {
-    'Binance': 'e0001',
-    'Coinbase': 'e0002',
-    'Kraken':  'e0003'
-}
+from global_vars import EXCHANGE_CODES
 
 class BinanceSymbol():
     def __init__(self, symbol, q_curr, b_curr):
@@ -36,16 +32,24 @@ class Exchange(object):
 
     def __init__(self, code, pkey, skey, is_default) -> None:
         self.code = code
+        self.exchange_name = {v:k for k, v in EXCHANGE_CODES.items()}[code]
+        
         if code == 'e0001':
             self.exchange = BinanceExchange(pkey, skey)   
-            self.is_default = is_default         
+            self.public_key = pkey
+            self.secret_key = skey         
+            self.is_default = is_default
         else:
-            exchange_name = {v:k for k, v in EXCHANGE_CODES.items}[code]
-            raise Exception('Support for {} Exchange is comming soon!'.format(exchange_name))
+            raise Exception('Support for {} Exchange is comming soon!'.format(self.exchange_name))
 
     @classmethod
     def from_dict(cls, exchange_setup):
         return cls(exchange_setup['code'], exchange_setup['public_key'], exchange_setup['secret_key'], exchange_setup['is_default'])
+    
+    def toDict(self):
+        outdict = copy.deepcopy(self.__dict__)
+        outdict.pop('exchange')
+        return outdict
 
     def getCurrentHoldings(self):
         return self.exchange.getCurrentHoldings()
@@ -144,19 +148,22 @@ class BinanceExchange(object):
     
     def getTrades(self, assets, start_date, end_date):
         
-        my_symbols = self.getTradingSymbols(assets)
-        start_date = stringToTimeStamp(start_date)
-        end_date = stringToTimeStamp(end_date)
-        out_trades = []
+        # my_symbols = self.getTradingSymbols(assets)
+        # start_date = stringToTimeStamp(start_date)
+        # end_date = stringToTimeStamp(end_date)
+        # out_trades = []
         
-        for symbol in my_symbols:
-            trades = self.client.get_my_trades(symbol=symbol.symbol)
-            time.sleep(1)
-            if trades:
-                for trade in trades:
-                    trade.update({'coin': symbol.q_curr})
-                    if trade['time'] > start_date and trade['time'] <= end_date:
-                        out_trades.append(trade)
+        # for symbol in my_symbols:
+        #     trades = self.client.get_my_trades(symbol=symbol.symbol)
+        #     time.sleep(0.5)
+        #     if trades:
+        #         for trade in trades:
+        #             trade.update({'coin': symbol.q_curr})
+        #             if trade['time'] > start_date and trade['time'] <= end_date:
+        #                 out_trades.append(trade)
+        
+        with open('file.json') as infile:
+            out_trades = json.load(infile)
 
         return out_trades
     

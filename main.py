@@ -23,28 +23,20 @@ This will avoid us from having to load this information
 
 from user import User
 
-# exchange_inputs = {
-#         'exchange_name': 'Binance', 
-#         'api_public': 'RsUPwFY1b3X9w7aWh5Ix55TsIZbgHBjxmS5lwUazpju1tKvlCYFK8V1HlsZ8eLkK', 
-#         'api_secret': 'CXxctMRkQmRBIs0AmHReGV2iEd6QlQ0zuz3FlnjLz3qfn05WTC0EyrLdAIpE6BCj',
-#         'is_default': 1
-#     }
+exchange_inputs = {
+        'exchange_name': 'Binance', 
+        'api_public': 'RsUPwFY1b3X9w7aWh5Ix55TsIZbgHBjxmS5lwUazpju1tKvlCYFK8V1HlsZ8eLkK', 
+        'api_secret': 'CXxctMRkQmRBIs0AmHReGV2iEd6QlQ0zuz3FlnjLz3qfn05WTC0EyrLdAIpE6BCj',
+        'is_default': 1
+    }
 
-port_settings = {
-    'portfolio_name': 'Binance Portfolio',
-    'reporting_currency': 'USDT'
-}
+survey = { "user_name": "ion.berasaluce16@gmail.com",
+           "reporting_currency": "USDT"
+         }
 
-# survey = { "user_name": "javiberas2601@gmail.com",
-#            "reporting_currency": "USDT"
-#          }
-
-# user1 = User(survey)
-# user1.addExchange(exchange_inputs)
-
-user1 = User.from_user_id('0004')
-portfolio = user1.createPortfolio(port_settings)
-historical_NAV = portfolio.getHistoricalNAV('2021-03-01', '2021-11-30')
+user1 = User.from_user_id('0001')
+user1.addExchange(exchange_inputs)
+historical_NAV = user1.getHistoricalNAV('2021-03-01', '2021-11-30')
 user1.save()
 
 import matplotlib.pyplot as plt

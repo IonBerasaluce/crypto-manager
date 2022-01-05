@@ -24,7 +24,10 @@ class Portfolio(object):
 
     def addExchange(self, exchanges):
         for exchange in exchanges:
-            ex = Exchange(exchange['code'], exchange['public_key'], exchange['secret_key'], exchange['is_default'])
+            if isinstance(exchange, dict):
+                ex = Exchange(exchange['code'], exchange['public_key'], exchange['secret_key'], exchange['is_default'])
+            else:
+                ex = exchange
             self.exchanges.append(ex)
         
     def getDefaultExchange(self):
@@ -34,10 +37,13 @@ class Portfolio(object):
         
         self.exchanges[0].is_default = 1
         return self.exchanges[0]
+    
+    def rename(self, name):
+        self.portfolio_name = name
 
     # Portfolio update functions
-    def updatePortfolio(self):
-        self.updateCostBasis()
+    def update(self):
+        # self.updateCostBasis()
         self.updateHoldings()
         self.updateNAV()
         self.updateAllocation()
@@ -73,6 +79,7 @@ class Portfolio(object):
         allocation = {a_name: (prices[a_name] * a_holding) / self.current_NAV for a_name, a_holding in self.current_holdings.items()}
         self.current_allocation = allocation
 
+    # TODO(ion): Rethink this function - issue when loading the account for the first time
     def updateCostBasis(self):
         start_date = self.update_date
         end_date = dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')

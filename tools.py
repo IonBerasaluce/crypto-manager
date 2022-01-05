@@ -130,7 +130,7 @@ def dbRead(db_name, start_date, end_date, combine_dates=False, headers=[], fill_
     data = data.loc[start_date:end_date, :].fillna(fill_values)
     
     if combine_dates:
-        data['time'] = data.index
+        data.insert(0, 'time', data.index)
 
     assets = list(data.columns)
     out_data = data.to_dict('records')
@@ -158,7 +158,7 @@ def constructHistoricalHoldingsFromActions(actions):
         historical_positioning.loc[coin_movements.index, asset] = coin_movements[asset]
     
     historical_positioning = historical_positioning.cumsum()
-    historical_positioning['time'] = historical_positioning.index
+    historical_positioning.insert(0, 'time', historical_positioning.index)
 
     out_dates = list(historical_positioning.index)
     out_dict = historical_positioning.to_dict('records')

@@ -214,19 +214,19 @@ def createHistoricalUserActions(user, all_actions=False):
     db = USER_DATA_PATH / (user + '/historical_data/historical_conversions')
     conversions = dbRead(db, start_date, end_date, combine_dates=True)
 
-    all_actions = []
-    trades = ([TradeAction(ta, re_key=False) for ta in trades.data])
-    deposits = ([DepositAction(da, re_key=False) for da in deposits.data])
-    fiat = ([FiatDepositAction(fa, re_key=False) for fa in fiat.data])
-    withdrawals = ([WithdrawlAction(wa, re_key=False) for wa in withdrawals.data])
-    dust = ([DustSweepAction(du, re_key=False) for du in dust.data])
-    dividends = ([DividendAction(da, re_key=False) for da in dividends.data])
-    conversions = ([ConversionAction(ca, re_key=False) for ca in conversions.data])
+    actions = []
+    trades = [TradeAction(ta, re_key=False) for ta in trades.data]
+    deposits = [DepositAction(da, re_key=False) for da in deposits.data]
+    fiat = [FiatDepositAction(fa, re_key=False) for fa in fiat.data]
+    withdrawals = [WithdrawlAction(wa, re_key=False) for wa in withdrawals.data]
+    dust = [DustSweepAction(du, re_key=False) for du in dust.data]
+    dividends = [DividendAction(da, re_key=False) for da in dividends.data]
+    conversions = [ConversionAction(ca, re_key=False) for ca in conversions.data]
 
-    all_actions.extend(trades + deposits + fiat + withdrawals + dust + dividends + conversions)
-    all_actions = getAdditionalInformation(all_actions)
+    actions.extend(trades + deposits + fiat + withdrawals + dust + dividends + conversions)
+    actions = getAdditionalInformation(actions)
 
-    return all_actions
+    return actions
 
 def exportActions(user, all_actions, full_download):
 
@@ -256,20 +256,15 @@ def createHistoricalUserHoldings(user, actions=[]):
     
     db_name = USER_DATA_PATH / (user + '/historical_data/historical_holdings')
     headers = historical_holdings.assets
-    full_download = False
-
-    if full_download:
-        dumpToDB(db_name, historical_holdings.data, headers=headers)
-    else:
-        addRowsToDB(db_name, historical_holdings.data, headers=headers)
+    
+    dumpToDB(db_name, historical_holdings.data, headers=headers)
 
     out_dict = {'last_update_date': end_date, 'headers': headers}
     updateDBInfo(db_name, out_dict)
     
     return
 
-def createUserData(user, exchange_dict):
-    exchange = Exchange.from_dict(exchange_dict)
+def createHistoricalUserData(user, exchange):
     loadAllDataFromExchange(user, exchange)
     user_actions = createHistoricalUserActions(user, all_actions=True)
     exportActions(user, user_actions, full_download=True)
@@ -293,7 +288,7 @@ def main():
             createHistoricalUserHoldings(user, actions=user_actions)
 
 
-
+createHistoricalUserHoldings('0001')
 
 
 

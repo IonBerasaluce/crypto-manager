@@ -5,6 +5,12 @@ USER_DATA_PATH = Path('data/user_data')
 MARKET_DATA_PATH = Path('data/market_data')
 SETUP_DIR = Path('data/app_setup.json')
 
+EXCHANGE_CODES = {
+    'Binance': 'e0001',
+    'Coinbase': 'e0002',
+    'Kraken':  'e0003'
+}
+
 BINANCE_KEY_MAP = {
     'coin':                   'asset',
     'amount':                 'amount',

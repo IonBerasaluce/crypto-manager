@@ -1,10 +1,10 @@
 
 from pandas.core.indexes import base
-from global_vars import USER_DATA_PATH
+from global_vars import USER_DATA_PATH, EXCHANGE_CODES
 from portfolio import Portfolio
 from tools import createFileInDirectory, createJsonDescriptors
-from exchange import EXCHANGE_CODES
-from update_user_data import createUserData
+from exchange import Exchange
+from update_user_data import createHistoricalUserData
 
 import json
 from pathlib import Path
@@ -16,6 +16,7 @@ SETUP_DIR = Path('data/app_setup.json')
 with open(SETUP_DIR) as infile:
     SETUP = json.load(infile)
 
+DEFAULT_PORTFOLIO = {'portfolio_name': 'Untitled', 'update_date':'2017-01-01'}
 
 class User(object):
     def __init__(self, survey) -> None:
@@ -63,7 +64,6 @@ class User(object):
     def from_user_id(cls, id):
 
         ob = cls.__new__(cls)
-        date = dt.datetime.utcnow()
 
         with open(SETUP_DIR) as infile:
             setup = json.load(infile)
@@ -72,23 +72,18 @@ class User(object):
 
         ob.user_id = id
         ob.user_name = user_config['user_name']
-        ob.user_exchanges = user_config['user_exchanges']
+        ob.reporting_currency = user_config['reporting_currency']
+        ob.user_exchanges = [Exchange.from_dict(exchange) for exchange in user_config['user_exchanges']]
         ob.user_portfolios = [Portfolio(port) for port in user_config['user_portfolios']]
-
+        
         for port in ob.user_portfolios:
             port.addExchange(ob.user_exchanges)
-            update_date = dt.datetime.strptime(port.update_date, "%Y-%m-%d %H:%M:%S")
-            update_diff = (date - update_date).total_seconds() / 60.0
-            
-            if update_diff > 0:
-                port.updatePortfolio()
 
         return ob
 
     def addExchange(self, exchange_data):
         exchange_code = EXCHANGE_CODES[exchange_data['exchange_name']]
-        self.user_exchanges.append({'code': exchange_code, 'public_key': exchange_data['api_public'], 'secret_key': exchange_data['api_secret'], 'is_default':exchange_data['is_default']})
-        self.save()
+        self.user_exchanges.append(Exchange(exchange_code, exchange_data['api_public'], exchange_data['api_secret'], exchange_data['is_default']))
     
         base_directory = USER_DATA_PATH / (self.user_id + '/historical_data/')
 
@@ -109,8 +104,15 @@ class User(object):
                 with open(base_directory / f, 'w') as outfile:
                     json.dump(my_dict, outfile, indent=4)
 
-        createUserData(self.user_id, self.user_exchanges[-1])
+        self.updatePortfolios()
+        self.save()
+        
+        createHistoricalUserData(self.user_id, self.user_exchanges[-1])
         return
+    
+    def getExchanges(self):
+        return [exchange.name for exchange in self.user_exchanges]
+
 
     def getUserPortfolio(self, portfolio_name):
         for portfolio in self.user_portfolios:
@@ -145,6 +147,11 @@ class User(object):
                 for port in v:
                     serial_ports.append(port.toDict())
                 outdict.update({'user_portfolios': serial_ports})
+            elif k == 'user_exchanges':
+                serial_exchanges = []
+                for exchange in v:
+                    serial_exchanges.append(exchange.toDict())
+                outdict.update({'user_exchanges': serial_exchanges})
             else:
                 outdict.update({k:v})
 
@@ -152,6 +159,7 @@ class User(object):
     
     def createPortfolio(self, port_settings):
         port_settings['user_id'] = self.user_id
+        port_settings['reporting_currency'] = self.reporting_currency
         port_settings['current_holdings'] = {}
         port_settings['current_NAV'] = 0.0
         port_settings['update_date'] = ''
@@ -160,25 +168,32 @@ class User(object):
         port_settings['current_assets'] = []
 
         portfolio = Portfolio(port_settings)
-        portfolio.addExchange(self.user_exchanges)
-        portfolio.updatePortfolio()
+
+        exchange_names = port_settings.get('exchanges', [])
+        if exchange_names:
+            for name in exchange_names:
+                exchanges_to_add = next((exchange for exchange in self.user_exchanges if exchange.name == name), None)
+        else:
+            exchanges_to_add = self.user_exchanges
+        
+        portfolio.addExchange(exchanges_to_add)
+        portfolio.update()
         self.user_portfolios.append(portfolio)
 
-    def updateCurrentHoldings(self):
-        for portfolio in self.user_portfolios:
-            portfolio.updateHoldings()
+    #TODO(ion): Add a force update parameter here which needs to be called upon adding a new Exchange to the portfolio
+    def updatePortfolios(self):
 
-    def getCurrentHoldings(self, force_update=False):
-        output = {}
+        if not self.user_portfolios:
+            self.createPortfolio(DEFAULT_PORTFOLIO)
+            return
 
-        if force_update:
-            self.updateCurrentHoldings()
+        date = dt.datetime.utcnow()
 
-        for portfolio in self.user_portfolios:
-            
-            if not portfolio.current_holdings:
-                self.updateCurrentHoldings()
+        for port in self.user_portfolios:
+            update_date = dt.datetime.strptime(port.update_date, "%Y-%m-%d %H:%M:%S")
+            update_diff = (date - update_date).total_seconds() / 60.0
 
-            output[portfolio.portfolio_name] = portfolio.current_holdings
+            if update_diff > 30:
+                port.update()
         
-        return output
+        return
