@@ -148,22 +148,22 @@ class BinanceExchange(object):
     
     def getTrades(self, assets, start_date, end_date):
         
-        # my_symbols = self.getTradingSymbols(assets)
-        # start_date = stringToTimeStamp(start_date)
-        # end_date = stringToTimeStamp(end_date)
-        # out_trades = []
+        my_symbols = self.getTradingSymbols(assets)
+        start_date = stringToTimeStamp(start_date)
+        end_date = stringToTimeStamp(end_date)
+        out_trades = []
         
-        # for symbol in my_symbols:
-        #     trades = self.client.get_my_trades(symbol=symbol.symbol)
-        #     time.sleep(0.5)
-        #     if trades:
-        #         for trade in trades:
-        #             trade.update({'coin': symbol.q_curr})
-        #             if trade['time'] > start_date and trade['time'] <= end_date:
-        #                 out_trades.append(trade)
+        for symbol in my_symbols:
+            trades = self.client.get_my_trades(symbol=symbol.symbol)
+            time.sleep(0.5)
+            if trades:
+                for trade in trades:
+                    trade.update({'coin': symbol.q_curr})
+                    if trade['time'] > start_date and trade['time'] <= end_date:
+                        out_trades.append(trade)
         
-        with open('file.json') as infile:
-            out_trades = json.load(infile)
+        # with open('file.json') as infile:
+        #     out_trades = json.load(infile)
 
         return out_trades
     
