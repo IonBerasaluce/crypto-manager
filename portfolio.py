@@ -8,7 +8,7 @@ class Portfolio(object):
         self.mongo = mongo_portfolio
         self.reporting_currency = mongo_portfolio.portfolio_currency
         self.current_holdings = mongo_portfolio.current_holdings
-        self.portoflio_nav = mongo_portfolio.portfolio_nav
+        self.portfolio_nav = mongo_portfolio.portfolio_nav
         self.last_update_date = mongo_portfolio.last_update_date
         self.current_assets = mongo_portfolio.current_assets 
         self.current_holdings = mongo_portfolio.current_holdings
@@ -32,12 +32,12 @@ class Portfolio(object):
         self.updateHoldings()
         self.updateNAV()
         self.updateAllocation()
-        self.last_update_date = dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        self.last_update_date = dt.datetime.utcnow()
         self.save()
         return
     
     def save(self):
-        self.mongo.portfolio_NAV      =  self.portfolio_nav
+        self.mongo.portfolio_nav      =  self.portfolio_nav
         self.mongo.current_assets     =  self.current_assets 
         self.mongo.current_holdings   =  self.current_holdings
         self.mongo.current_allocation =  self.current_allocation
@@ -77,7 +77,7 @@ class Portfolio(object):
         pref_exchange = self.getDefaultExchange()
         prices = pref_exchange.getCurrentPriceForAssets(self.current_assets, self.reporting_currency)
         allocation = {a_name: (prices[a_name] * a_holding) / self.portfolio_nav for a_name, a_holding in self.current_holdings.items()}
-        self.mongo.current_allocation = allocation
+        self.current_allocation = allocation
 
     # TODO(ion): Rethink this function - issue when loading the account for the first time
     def updateCostBasis(self):

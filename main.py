@@ -22,6 +22,8 @@ This will avoid us from having to load this information
 '''
 
 import datetime as dt
+from re import L
+import time
 from infrastructure.switchlang import switch
 from colorama import Fore
 from passlib.hash import pbkdf2_sha256
@@ -31,12 +33,14 @@ import services.data_service as svc
 import infrastructure.state as state
 from update_user_data_new import loadAllDataFromExchange
 from portfolio import Portfolio
+from tools import printProgressBar
 
 def show_commands():
     print('What action would you like to take:')
     print('[V]iew your portfolios')
     print('[C]reate a new portfolio')
     print('Edit [P]ortfolio')
+    print('[U]pdate user data')
     print('Setup a new [E]xchange')
     print('Add Offline [W]allet')
     print('[H]ome page')
@@ -124,6 +128,23 @@ def edit_portfolio():
         s.case('x', exit_app)
         s.default(unknown_command)
 
+def update_user():
+
+    if not state.active_user:
+        print("You must login to continue")
+
+    user_portfolios = svc.get_user_portfolios(state.active_user)
+    l = len(user_portfolios)
+
+    printProgressBar(0, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    for i, port in enumerate(user_portfolios):
+        portfolio = Portfolio(port)
+        portfolio.update()
+        time.sleep(0.1)
+        printProgressBar(i + 1, l, prefix = 'Progress:', suffix = 'Complete', length = 50) 
+    
+    print('User data updated successfully!')
+
 
 def add_exchange():
     print('============= Add Exchange =============')
@@ -169,7 +190,7 @@ def view_portfolios():
 
         portfolio = Portfolio(mongo_portfolio)
 
-        if (mongo_portfolio.last_update_date - dt.datetime.today()).seconds > 30*60:
+        if (dt.datetime.utcnow() - mongo_portfolio.last_update_date).seconds > 30*60:
             portfolio.update()
 
         print("Current NAV in {}: ".format(mongo_portfolio.portfolio_name))
@@ -224,6 +245,7 @@ def user_loop():
             s.case('g', create_account)
             s.case('l', login)
             s.case('v', view_portfolios)
+            s.case('u', update_user)
             s.case('p', edit_portfolio)
             s.case('e', add_exchange)
             s.case('c', create_portfolio)
