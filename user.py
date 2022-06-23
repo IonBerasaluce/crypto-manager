@@ -83,6 +83,12 @@ class User(object):
 
     def addExchange(self, exchange_data):
         exchange_code = EXCHANGE_CODES[exchange_data['exchange_name']]
+
+        for exchange in self.user_exchanges:
+            if exchange_code == exchange.code:
+                print('Exchange {} already setup and ready to use!'.format(exchange_data['exchange_name']))
+                return
+
         self.user_exchanges.append(Exchange(exchange_code, exchange_data['api_public'], exchange_data['api_secret'], exchange_data['is_default']))
     
         base_directory = USER_DATA_PATH / (self.user_id + '/historical_data/')

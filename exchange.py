@@ -46,6 +46,10 @@ class Exchange(object):
     def from_dict(cls, exchange_setup):
         return cls(exchange_setup['code'], exchange_setup['public_key'], exchange_setup['secret_key'], exchange_setup['is_default'])
     
+    @classmethod
+    def from_mongo(cls, mongo_exchange):
+        return cls(mongo_exchange.exchange_code, mongo_exchange.exchange_pkey, mongo_exchange.exchange_skey, False)
+
     def toDict(self):
         outdict = copy.deepcopy(self.__dict__)
         outdict.pop('exchange')

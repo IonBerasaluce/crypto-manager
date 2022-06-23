@@ -1,0 +1,22 @@
+Features to include:
+Only work on binance
+
+1. Basic features:
+    Get prices
+        How do we save these?
+        Find API to provide these for free
+    Get position data
+        Handle coins in binance and coins manually inputted
+    Get historical PnL correctly
+    Get Histortical Net Worth
+    Display
+
+2. Advanced stage 2 features
+    Get cost basis for each coin 
+
+
+How to handle trades together with fees
+
+Trade class - data = What Binance returns from the API
+Where are they stored -> DB equivalent  
+    

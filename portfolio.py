@@ -1,35 +1,23 @@
 from historical_data_manager import HistoricalDataManager
-from exchange import Exchange
 import datetime as dt
+from exchange import Exchange
 
 class Portfolio(object):
 
-    def __init__(self, port_settings) -> None:
-        self.portfolio_name = port_settings['portfolio_name']
-        self.reporting_currency = port_settings['reporting_currency']
-        self.current_holdings = port_settings['current_holdings']
-        self.current_NAV = port_settings['current_NAV'],
-        self.update_date = port_settings['update_date']
-        self.user_id = port_settings['user_id']
-        self.current_assets = port_settings['current_assets']
-        self.current_allocation = port_settings['current_allocation']
-        self.exchanges = []
-        self.cost_basis = port_settings['cost_basis']
-        self.historical_data_manager = HistoricalDataManager(self.user_id, self.reporting_currency)
-
-    # Portfolio util Functions
-    def toDict(self):
-        dict_out = {k:v for k,v in self.__dict__.items() if k not in ['exchanges', 'historical_data_manager']}
-        return dict_out
-
-    def addExchange(self, exchanges):
-        for exchange in exchanges:
-            if isinstance(exchange, dict):
-                ex = Exchange(exchange['code'], exchange['public_key'], exchange['secret_key'], exchange['is_default'])
-            else:
-                ex = exchange
-            self.exchanges.append(ex)
+    def __init__(self, mongo_portfolio) -> None:
+        self.mongo = mongo_portfolio
+        self.reporting_currency = mongo_portfolio.portfolio_currency
+        self.current_holdings = mongo_portfolio.current_holdings
+        self.portoflio_nav = mongo_portfolio.portfolio_nav
+        self.last_update_date = mongo_portfolio.last_update_date
+        self.current_assets = mongo_portfolio.current_assets 
+        self.current_holdings = mongo_portfolio.current_holdings
+        self.current_allocation = mongo_portfolio.current_allocation
+        self.exchanges = [Exchange.from_mongo(mongo_exchange) for mongo_exchange in mongo_portfolio.exchanges]
+        self.cost_basis = {}
         
+        # self.historical_data_manager = HistoricalDataManager(self.user_id, self.reporting_currency)
+
     def getDefaultExchange(self):
         for exchange in self.exchanges:
             if exchange.is_default:
@@ -37,9 +25,6 @@ class Portfolio(object):
         
         self.exchanges[0].is_default = 1
         return self.exchanges[0]
-    
-    def rename(self, name):
-        self.portfolio_name = name
 
     # Portfolio update functions
     def update(self):
@@ -47,14 +32,27 @@ class Portfolio(object):
         self.updateHoldings()
         self.updateNAV()
         self.updateAllocation()
-        self.update_date = dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        self.last_update_date = dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        self.save()
         return
     
+    def save(self):
+        self.mongo.portfolio_NAV      =  self.portfolio_nav
+        self.mongo.current_assets     =  self.current_assets 
+        self.mongo.current_holdings   =  self.current_holdings
+        self.mongo.current_allocation =  self.current_allocation
+        self.mongo.last_update_date   =  self.last_update_date
+        self.mongo.save()
+
     def updateHoldings(self):
         current_holdings = {}
         for exchange in self.exchanges:
             exchange_holdings = exchange.getCurrentHoldings()
             for asset, amount in exchange_holdings.items():
+
+                # Rename coins in Earn account to their actual names
+                if asset in ['LDBTC', 'LDETH']:
+                    asset = asset[2:]
                
                 if current_holdings.get(asset, None) != None:
                     current_holdings[asset] += amount
@@ -65,19 +63,21 @@ class Portfolio(object):
         self.current_holdings = current_holdings
     
     def updateNAV(self):
+        # TODO(ion): Need to change this - we need to find the valid base currency e.g. (USDT vs BUSD vs USDC) plus account
+        # for different currencies other than USD
         pref_exchange = self.getDefaultExchange()
         asset_prices = pref_exchange.getCurrentPriceForAssets(self.current_assets, self.reporting_currency)
         total = 0.0
         for asset in self.current_assets:
             total += (asset_prices[asset] * self.current_holdings[asset])
         
-        self.current_NAV = total
+        self.portfolio_nav = total
     
     def updateAllocation(self):
         pref_exchange = self.getDefaultExchange()
         prices = pref_exchange.getCurrentPriceForAssets(self.current_assets, self.reporting_currency)
-        allocation = {a_name: (prices[a_name] * a_holding) / self.current_NAV for a_name, a_holding in self.current_holdings.items()}
-        self.current_allocation = allocation
+        allocation = {a_name: (prices[a_name] * a_holding) / self.portfolio_nav for a_name, a_holding in self.current_holdings.items()}
+        self.mongo.current_allocation = allocation
 
     # TODO(ion): Rethink this function - issue when loading the account for the first time
     def updateCostBasis(self):
