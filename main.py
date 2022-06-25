@@ -37,19 +37,20 @@ from tools import printProgressBar
 
 def show_commands():
     print('What action would you like to take:')
-    print('[V]iew your portfolios')
-    print('[C]reate a new portfolio')
-    print('Edit [P]ortfolio')
-    print('[U]pdate user data')
-    print('Setup a new [E]xchange')
-    print('Add Offline [W]allet')
-    print('[H]ome page')
-    print('e[X]it')
+    print(' * [V]iew your portfolios')
+    print(' * [C]reate a new portfolio')
+    print(' * Edit [P]ortfolio')
+    print(' * [U]pdate user data')
+    print(' * Setup a new [E]xchange')
+    print(' * Add Offline [W]allet')
+    print(' * [H]ome page')
+    print(' * E[X]it')
 
 def show_portfolio_commands():
-    print('Update reporting [C]urrency')
-    print('[R]ename Portfolio')
-    print('[H]ome page')
+    print('What action would you like to take:')
+    print(' * Update reporting [C]urrency')
+    print(' * [R]ename Portfolio')
+    print(' * [H]ome page')
 
 def print_header():
     print('----------------------------------------------')
@@ -117,33 +118,34 @@ def create_portfolio():
     print('Successfully added Portfolio: {} to your account'.format(portfolio.portfolio_name))
 
 def edit_portfolio():
-# TODO(ion): Change the order here where we first select the portfolio that we would like to edit and then we perform
-# the edits. This way the user can make several edits without having to select the portfolio multiple times 
     print('============= Edit a Portfolio =============')
-    show_portfolio_commands()
 
-def rename_portfolio():
-    # TODO(ion): Create a method to get the portfolio of user by port_name in svc
-    print('Which portfolio would you like to rename: ')
-
-    valid_names = []
+    if not state.active_user:
+        print("You must login to update your portfolios")
+        return
+    
+    print('Select a portfolio to edit')
     user_portfolios = svc.get_user_portfolios(state.active_user)
     for port in user_portfolios:
-        valid_names.append(port.portfolio_name)
         print(port.portfolio_name)
-    
-    port_name = input()
-    
-    for port in user_portfolios:
-        if port.portfolio_name == port_name:
-            portfolio = port
-            new_name = input('Input new name for portfolio: ')
-            portfolio.portfolio_name = new_name
-            portfolio.save()
-            return
 
-    print('No portfolios named {} found, please try again.'.format(port_name))
-           
+    port_name = input()
+    portfolios = svc.get_user_portfolios(state.active_user, port_name)
+    if portfolios:
+        portfolio = portfolios[0]
+        show_portfolio_commands()
+        action = get_action()
+        with switch(action) as s:
+            s.case('r', lambda: rename_portfolio(portfolio))
+            s.case('c', lambda: change_portfolio_currency(portfolio))
+            s.case('h', home_page)
+            s.default(unknown_command)
+        return    
+    
+    else:
+        print('No portfolios named {} found, please try again.'.format(port_name))
+        edit_portfolio()
+
 def update_user():
 
     if not state.active_user:
@@ -160,7 +162,6 @@ def update_user():
         printProgressBar(i + 1, l, prefix = 'Progress:', suffix = 'Complete', length = 50) 
     
     print('User data updated successfully!')
-
 
 def add_exchange():
     print('============= Add Exchange =============')
@@ -216,32 +217,19 @@ def view_portfolios():
         print("Current allocation in portfolio {}".format(mongo_portfolio.portfolio_name))
         print(portfolio.current_allocation)
 
-def change_portfolio_currency():
-    
-    if not state.active_user:
-        print("You must login to update your portfolios")
+def rename_portfolio(portfolio):
+    new_name = input('Please input the new portfolio name: ')
+    portfolio.portfolio_name = new_name
+    portfolio.save()
 
-    user = state.active_user
-    user_portfolios = svc.get_user_portfolios(user)
+    print('Successfully renamed portfolio to {}'.format(new_name))
 
-    for port in user_portfolios:
-        print(port.portfolio_name)
-    
-    target_portfolio_name = input("Please select the portfolio you would like to change the reporting currency: ")
-    
-    for port in user_portfolios:
-        if port.portfolio_name == target_portfolio_name:
-            portfolio_to_change = port
-        else:
-            print("Portfolio {} not found, please select a portfolio from the list below: ".format(target_portfolio_name))
-            change_portfolio_currency()
-    
+def change_portfolio_currency(portfolio):
     new_reporting_currency = input("Please input the new reporting currency: ")
-    portfolio_to_change.portfolio_currency = new_reporting_currency
+    portfolio.portfolio_currency = new_reporting_currency
+    portfolio.save()
 
-    portfolio_to_change.save()
-
-    print("Successfuly changed the reporting currency of portfolio: {} to {}".format(target_portfolio_name, new_reporting_currency))
+    print("Successfully changed the reporting currency of portfolio: {} to {}".format(portfolio.portfolio_name, new_reporting_currency))
 
 def add_offline_wallet():
     print("TODO: Ion still needs to implement this")
@@ -265,7 +253,6 @@ def user_loop():
             s.case('p', edit_portfolio)
             s.case('e', add_exchange)
             s.case('c', create_portfolio)
-            s.case('r', rename_portfolio)
             s.case('h', home_page)
             s.case('w', add_offline_wallet)
             s.case('x', exit_app)
