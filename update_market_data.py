@@ -2,7 +2,6 @@ import ccxt
 from global_vars import *
 from tools import stringToTimeStamp, timestampToString, getDBInfo, dumpToDB, toTimeStamp, updateDBInfo, addRowsToDB
 import datetime as dt
-import json
 
 exchange = ccxt.binance({
     'enableRateLimit': True
@@ -77,4 +76,6 @@ def updateMarketDB(assets=[]):
     db_info = {'initial_date': initial_date, 'last_update_date': market_data[-1]['time'], "current_assets": current_assets, 'headers': headers}
         
     updateDBInfo(db, db_info)
+
+updateMarketDB()
 

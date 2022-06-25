@@ -117,17 +117,33 @@ def create_portfolio():
     print('Successfully added Portfolio: {} to your account'.format(portfolio.portfolio_name))
 
 def edit_portfolio():
+# TODO(ion): Change the order here where we first select the portfolio that we would like to edit and then we perform
+# the edits. This way the user can make several edits without having to select the portfolio multiple times 
     print('============= Edit a Portfolio =============')
     show_portfolio_commands()
 
-    action = get_action()
+def rename_portfolio():
+    # TODO(ion): Create a method to get the portfolio of user by port_name in svc
+    print('Which portfolio would you like to rename: ')
 
-    with switch(action) as s:
-        s.case('c', change_portfolio_currency)
-        s.case('h', home_page)
-        s.case('x', exit_app)
-        s.default(unknown_command)
+    valid_names = []
+    user_portfolios = svc.get_user_portfolios(state.active_user)
+    for port in user_portfolios:
+        valid_names.append(port.portfolio_name)
+        print(port.portfolio_name)
+    
+    port_name = input()
+    
+    for port in user_portfolios:
+        if port.portfolio_name == port_name:
+            portfolio = port
+            new_name = input('Input new name for portfolio: ')
+            portfolio.portfolio_name = new_name
+            portfolio.save()
+            return
 
+    print('No portfolios named {} found, please try again.'.format(port_name))
+           
 def update_user():
 
     if not state.active_user:
@@ -249,6 +265,7 @@ def user_loop():
             s.case('p', edit_portfolio)
             s.case('e', add_exchange)
             s.case('c', create_portfolio)
+            s.case('r', rename_portfolio)
             s.case('h', home_page)
             s.case('w', add_offline_wallet)
             s.case('x', exit_app)
