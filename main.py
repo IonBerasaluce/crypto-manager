@@ -131,16 +131,18 @@ def edit_portfolio():
 
     port_name = input()
     portfolios = svc.get_user_portfolios(state.active_user, port_name)
+    action = None
+    
     if portfolios:
         portfolio = portfolios[0]
-        show_portfolio_commands()
-        action = get_action()
-        with switch(action) as s:
-            s.case('r', lambda: rename_portfolio(portfolio))
-            s.case('c', lambda: change_portfolio_currency(portfolio))
-            s.case('h', home_page)
-            s.default(unknown_command)
-        return    
+        while action == None or action != 'h':
+            show_portfolio_commands()
+            action = get_action()
+            with switch(action) as s:
+                s.case('r', lambda: rename_portfolio(portfolio))
+                s.case('c', lambda: change_portfolio_currency(portfolio))
+                s.case('h', home_page)
+                s.default(unknown_command)    
     
     else:
         print('No portfolios named {} found, please try again.'.format(port_name))
